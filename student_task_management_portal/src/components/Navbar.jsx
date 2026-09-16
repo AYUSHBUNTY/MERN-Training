@@ -1,10 +1,15 @@
-function Navbar(){
-    return(
-        <nav>
-            <h2>Student Task Portal</h2>
+import { NavLink } from "react-router-dom";
+
+function Navbar() {
+    return (
+        <nav className="navbar">
+            <div className="brand">
+                <div className="brand-mark">S</div>
+                <h2>Student Task Portal</h2>
+            </div>
             <div className="nav-links">
-                <a href="#">Dashboard</a>
-                <a href="#">Tasks</a>
+                <NavLink to="/">Dashboard</NavLink>
+                <NavLink to="/tasks">Tasks</NavLink>
             </div>
         </nav>
     );
