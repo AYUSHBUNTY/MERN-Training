@@ -26,7 +26,7 @@ function App() {
                 <Route path="/" element={<Dashboard tasks={tasks} setTasks={setTasks} />} />
                 <Route path="/tasks" element={<Tasks tasks={tasks} />} />
                 <Route path="/tasks/:id" element={<TaskDetails tasks={tasks} />} />
-                <Route path="/add-task" element={<AddTaskPage />} />
+                <Route path="/add-task" element={<AddTaskPage setTasks={setTasks} />} />
             </Routes>
         </div>
     );
