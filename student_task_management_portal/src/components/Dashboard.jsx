@@ -1,105 +1,129 @@
-import StatCard from "./statcard";
+import StatCard from "./StatCard";
 import TaskCard from "./TaskCard";
 import AddTask from "./AddTask";
 
-function Dashboard(props) {
+const API_URL = "http://localhost:5050/api/tasks";
 
-    const totalTasks = props.tasks.length;
-    const completedTasks = props.tasks.filter(
-        (task) => task.status.toLowerCase() === "completed"
-    ).length;
-    const pendingTasks = props.tasks.filter(
-        (task) => task.status.toLowerCase() === "pending"
+function Dashboard({ tasks = [], setTasks }) {
+    const completedTasks = tasks.filter(
+        (task) => task.status?.toLowerCase() === "completed"
     ).length;
 
-    async function toggleTask(id){
-        const task = props.tasks.find((task) => task.id === id);
-        if (!task) return;
-        const newStatus = task.status === "Completed" ? "Pending" : "Completed";
-        try {
-            const response = await fetch(`http://localhost:5050/api/tasks/${id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
-            });
-            if (!response.ok) throw new Error("Could not update task");
+    const pendingTasks = tasks.filter(
+        (task) => task.status?.toLowerCase() === "pending"
+    ).length;
 
-            const updatedTask = await response.json();
-            props.setTasks((currentTasks) =>
-                currentTasks.map((currentTask) =>
-                    currentTask.id === id ? updatedTask : currentTask
-                )
-            );
-        } catch (error) {
-            console.error("Error updating task:", error);
-        }
-    }
-
-    async function addTask(newTask){
+    async function addTask(newTask) {
         try {
-            const response = await fetch("http://localhost:5050/api/tasks", {
+            const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                     title: newTask.title,
                     description: newTask.description,
-                    status: newTask.status,
+                    status: "Pending",
                 }),
             });
-            if (!response.ok) throw new Error("Could not add task");
+
+            if (!response.ok) {
+                throw new Error("Failed to create task");
+            }
 
             const savedTask = await response.json();
-            props.setTasks((currentTasks) => [...currentTasks, savedTask]);
+            setTasks((currentTasks) => [savedTask, ...currentTasks]);
         } catch (error) {
-            console.error("Error adding task:", error);
-            throw error;
+            console.error("Create error:", error);
         }
     }
 
-    async function deleteTask(id){
-        try {
-            const response = await fetch(`http://localhost:5050/api/tasks/${id}`, {
-                method: "DELETE",
-            });
-            if (!response.ok) throw new Error("Could not delete task");
+    async function toggleTask(id) {
+        const task = tasks.find(
+            (item) => String(item._id) === String(id)
+        );
 
-            const deletedTask = await response.json();
-            props.setTasks((currentTasks) =>
-                currentTasks.filter((task) => task.id !== id)
+        if (!task) return;
+
+        const newStatus =
+            task.status?.toLowerCase() === "completed"
+                ? "Pending"
+                : "Completed";
+
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update task");
+            }
+
+            const updatedTask = await response.json();
+
+            setTasks((currentTasks) =>
+                currentTasks.map((item) =>
+                    String(item._id) === String(id)
+                        ? updatedTask
+                        : item
+                )
             );
         } catch (error) {
-            console.error("Error deleting task:", error);
+            console.error("Update error:", error);
+        }
+    }
+
+    async function deleteTask(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete task");
+            }
+
+            await response.json();
+
+            setTasks((currentTasks) =>
+                currentTasks.filter(
+                    (item) => String(item._id) !== String(id)
+                )
+            );
+        } catch (error) {
+            console.error("Delete error:", error);
         }
     }
 
     return (
         <main>
-        
             <div className="stack-container">
-                <StatCard title="Total Tasks" value={totalTasks}/>
-                <StatCard title="Completed" value={completedTasks}/>
-                <StatCard title="Pending" value={pendingTasks}/>
-                
+                <StatCard title="Total Tasks" value={tasks.length} />
+                <StatCard title="Completed" value={completedTasks} />
+                <StatCard title="Pending" value={pendingTasks} />
             </div>
 
-            <AddTask  onAddTask={addTask}/>
+            <AddTask onAddTask={addTask} />
 
             <h2>Recent Tasks</h2>
 
             <div className="task-container">
-                {props.tasks.map((task)=>(
-                    <TaskCard 
-                        key={task.id} 
-                        id ={task.id}
-                        title={task.title} 
-                        description={task.description} 
+                {tasks.map((task) => (
+                    <TaskCard
+                        key={task._id}
+                        id={task._id}
+                        title={task.title}
+                        description={task.description}
                         status={task.status}
-                        onToggle={()=>toggleTask(task.id)} 
-                        onDelete={()=>deleteTask(task.id)}
+                        onToggle={() => toggleTask(task._id)}
+                        onDelete={() => deleteTask(task._id)}
                     />
                 ))}
             </div>
-
         </main>
     );
 }

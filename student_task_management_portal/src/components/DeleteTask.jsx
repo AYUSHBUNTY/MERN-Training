@@ -1,5 +1,5 @@
 function deleteTask(taskId, setTasks) {
-  fetch(`http://localhost:8080/api/tasks/${taskId}`, {
+  fetch(`http://localhost:5050/api/tasks/${taskId}`, {
     method: 'DELETE',
   })
     .then((response) => {

@@ -1,93 +1,86 @@
 require("dotenv").config();
 
-// bring express in node.js
 const express = require("express");
-
-// installing cors middleware
 const cors = require("cors");
+const mongoose = require("mongoose");
+const Task = require("./models/Task");
 
-// create an express app
 const app = express();
 
+app.use(cors());
+app.use(express.json());
 
 app.get("/", (req, res) => {
-    res.send("Back-end server is running");
+    res.send("Backend server is running");
 });
 
-const mongoose = require("mongoose");
-
-app.use(cors());// use cors middleware to handle requests from different origins
-app.use(express.json());// use express.json() middleware to parse incoming JSON requests
-
-mongoose.connect(process.env.MONGODB_URL)
-.then(() => {
-    console.log("Connected to MongoDB");
-})
-.catch((error) => {
-    console.error("Error connecting to MongoDB:", error);
+app.get("/api/tasks", async (req, res) => {
+    try {
+        const tasks = await Task.find().sort({ createdAt: -1 });
+        res.json(tasks);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-const tasks =[
-        {
-              id:1,
-              title:"Learn React",
-              description:"Understanding Components",
-              status: "Completed"
-        },
-        {
-              id:2,
-              title:"Learn JavaScript",
-              description:"Understanding Variables, Functions",
-              status: "Pending"
+app.post("/api/tasks", async (req, res) => {
+    try {
+        const task = await Task.create({
+            title: req.body.title,
+            description: req.body.description,
+            status: req.body.status || "Pending",
+        });
+
+        res.status(201).json(task);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.put("/api/tasks/:id", async (req, res) => {
+    try {
+        const task = await Task.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            {
+                new: true,
+                runValidators: true,
+            }
+        );
+
+        if (!task) {
+            return res.status(404).json({ error: "Task not found" });
         }
-    ];
 
-//read operation  in backend
-app.get("/api/tasks", (req, res) => {
-    res.json(tasks);
+        res.json(task);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.delete("/api/tasks/:id", async (req, res) => {
+    try {
+        const task = await Task.findByIdAndDelete(req.params.id);
+
+        if (!task) {
+            return res.status(404).json({ error: "Task not found" });
+        }
+
+        res.json({ deletedId: task._id });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => {
+        console.log("Connected to MongoDB Atlas");
+
+        app.listen(5050, () => {
+            console.log("Server running at http://localhost:5050");
+        });
+    })
+    .catch((error) => {
+        console.error("MongoDB connection failed:", error.message);
     });
-
-app.get("/api/tasks/:id", (req, res) => {
-    const id = Number(req.params.id);
-    const task = tasks.find((task) => task.id === id);
-    if (!task) {
-        return res.status(404).json({ error: "Task not found" });
-    }
-    res.json(task);
-});
-
-// create operation in backend
-app.post("/api/tasks", (req, res) => {
-    const nextId = tasks.reduce(
-        (highestId, task) => Math.max(highestId, Number(task.id) || 0), 0) + 1;
-    const newTask = { ...req.body, id: nextId };
-    tasks.push(newTask);
-    res.json(newTask);
-});
-
-// update operation in backend
-app.put("/api/tasks/:id", (req, res) => {
-    const id = Number(req.params.id);
-    const task = tasks.find((task) => task.id === id);
-    if (!task) {
-        return res.status(404).json({ error: "Task not found" });
-    }
-    task.status = req.body.status;
-    res.json(task);
-});
-
-// delete operation in backend
-app.delete("/api/tasks/:id", (req, res) => {
-    const id = Number(req.params.id);
-    const taskIndex = tasks.findIndex((task) => task.id === id);
-    if (taskIndex === -1) {
-        return res.status(404).json({ error: "Task not found" });
-    }
-    const deletedTask = tasks.splice(taskIndex, 1);
-    res.json(deletedTask[0]);
-});
-
-//our api route (testing)
-app.listen(5050, () => {
-    console.log("Server is running on port 5050");
-});
